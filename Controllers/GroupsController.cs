@@ -17,12 +17,13 @@ public class GroupsController : ApiController
         _context = dataContext;
     }
     
-    [Authorize(Roles = "Teacher")]
+    [Authorize(Roles = RoleConsts.Teacher)]
     [HttpPost(Name = "Create Group")]
     public async Task<IActionResult> CreateGroup([FromBody] GroupRequest request)
     {
         if (!ModelState.IsValid)
         {
+            Console.WriteLine("Model state is invalid");
             return BadRequest(ModelState);
         }
         
@@ -44,10 +45,10 @@ public class GroupsController : ApiController
         return await _context.Groups.ToListAsync();
     }
 
-    [HttpPost("{id:guid}", Name = "Join Group")]
-    public async Task<IActionResult> JoinGroup([FromBody] string userName, Guid id)
+    [HttpPost("{id:int}", Name = "Join Group")]
+    public async Task<IActionResult> JoinGroup([FromBody] string userEmail, int id)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.UserName == userName);
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == userEmail);
         
         if (user is null)
             return NotFound();
@@ -57,11 +58,13 @@ public class GroupsController : ApiController
         if (group is null)
             return NotFound();
         
-        group.GroupUsers.Add(user);
+        group.ApplicationUsers.Add(user);
         user.Groups.Add(group);
         
         await _context.SaveChangesAsync();
         
         return Ok();
     }
+    
+    
 }

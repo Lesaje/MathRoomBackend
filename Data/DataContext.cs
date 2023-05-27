@@ -1,5 +1,4 @@
 using MathRoom.Backend.Data.Entities;
-using MathRoom.Backend.Models.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -16,4 +15,5 @@ public sealed class DataContext : IdentityDbContext<ApplicationUser, IdentityRol
     }
 
     public DbSet<Group> Groups { get; set; } = null!;
+    public DbSet<Problem> Problems { get; set; } = null!;
 }

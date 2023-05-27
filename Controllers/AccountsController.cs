@@ -123,5 +123,39 @@ public class AccountsController : ControllerBase
             Password = request.Password
         });
     }
+    
+    [Authorize(Roles = RoleConsts.Student)]
+    [HttpPost]
+    public async Task<IActionResult> RefreshListOfSolvedProblems([FromBody] ProblemRefreshRequest request)
+    {
+        var managedUser = await _userManager.FindByEmailAsync(request.Email);
+        if (managedUser == null)
+        {
+            return BadRequest("Bad credentials");
+        }
+
+        var solvedProblems = new List<Problem>();
+        
+        foreach (var keypair in request.TriedProblems)
+        {
+            
+            if (keypair.Value == true)
+            {
+                var problem = await _context.Problems.FirstOrDefaultAsync(p => p.Id == keypair.Key);
+                if (problem == null)
+                {
+                    return BadRequest("No such problem exists");
+                }
+                managedUser.SolvedProblems.Add(problem);
+            }
+            else
+            {
+                managedUser.HowManyProblemsWasTried += 1;
+            }
+        }
+        
+        await _context.SaveChangesAsync();
+        return Ok();
+    }
 
 }

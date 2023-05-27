@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -7,7 +8,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace MathRoom.Backend.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class something : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -33,11 +34,10 @@ namespace MathRoom.Backend.Migrations
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    UserRole = table.Column<string>(type: "text", nullable: false),
-                    Password = table.Column<string>(type: "text", nullable: false),
                     FirstName = table.Column<string>(type: "text", nullable: false),
                     LastName = table.Column<string>(type: "text", nullable: false),
-                    MiddleName = table.Column<string>(type: "text", nullable: true),
+                    MiddleName = table.Column<string>(type: "text", nullable: false),
+                    HowManyProblemsWasTried = table.Column<int>(type: "integer", nullable: false),
                     UserName = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
                     NormalizedUserName = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
                     Email = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
@@ -56,6 +56,35 @@ namespace MathRoom.Backend.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_AspNetUsers", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Groups",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    GroupName = table.Column<string>(type: "text", nullable: false),
+                    Tags = table.Column<List<string>>(type: "text[]", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Groups", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Problems",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Tag = table.Column<string>(type: "text", nullable: false),
+                    Answer = table.Column<string>(type: "text", nullable: false),
+                    Path = table.Column<string>(type: "text", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Problems", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -164,6 +193,64 @@ namespace MathRoom.Backend.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "ApplicationUserGroup",
+                columns: table => new
+                {
+                    ApplicationUsersId = table.Column<long>(type: "bigint", nullable: false),
+                    GroupsId = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ApplicationUserGroup", x => new { x.ApplicationUsersId, x.GroupsId });
+                    table.ForeignKey(
+                        name: "FK_ApplicationUserGroup_AspNetUsers_ApplicationUsersId",
+                        column: x => x.ApplicationUsersId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ApplicationUserGroup_Groups_GroupsId",
+                        column: x => x.GroupsId,
+                        principalTable: "Groups",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ApplicationUserProblem",
+                columns: table => new
+                {
+                    ApplicationUsersId = table.Column<long>(type: "bigint", nullable: false),
+                    SolvedProblemsId = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ApplicationUserProblem", x => new { x.ApplicationUsersId, x.SolvedProblemsId });
+                    table.ForeignKey(
+                        name: "FK_ApplicationUserProblem_AspNetUsers_ApplicationUsersId",
+                        column: x => x.ApplicationUsersId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ApplicationUserProblem_Problems_SolvedProblemsId",
+                        column: x => x.SolvedProblemsId,
+                        principalTable: "Problems",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ApplicationUserGroup_GroupsId",
+                table: "ApplicationUserGroup",
+                column: "GroupsId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ApplicationUserProblem_SolvedProblemsId",
+                table: "ApplicationUserProblem",
+                column: "SolvedProblemsId");
+
             migrationBuilder.CreateIndex(
                 name: "IX_AspNetRoleClaims_RoleId",
                 table: "AspNetRoleClaims",
@@ -206,6 +293,12 @@ namespace MathRoom.Backend.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
+                name: "ApplicationUserGroup");
+
+            migrationBuilder.DropTable(
+                name: "ApplicationUserProblem");
+
+            migrationBuilder.DropTable(
                 name: "AspNetRoleClaims");
 
             migrationBuilder.DropTable(
@@ -219,6 +312,12 @@ namespace MathRoom.Backend.Migrations
 
             migrationBuilder.DropTable(
                 name: "AspNetUserTokens");
+
+            migrationBuilder.DropTable(
+                name: "Groups");
+
+            migrationBuilder.DropTable(
+                name: "Problems");
 
             migrationBuilder.DropTable(
                 name: "AspNetRoles");
