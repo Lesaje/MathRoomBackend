@@ -1,8 +1,6 @@
 namespace MathRoom.Backend.Models.Identity;
 
-public class AuthResponse
+public class AuthResponse : BaseAccountResponse
 {
-    public string Username { get; set; } = null!;
-    public string Email { get; set; } = null!;
     public string Token { get; set; } = null!;
 }

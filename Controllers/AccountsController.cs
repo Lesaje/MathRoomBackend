@@ -1,6 +1,6 @@
-using System.IdentityModel.Tokens.Jwt;
 using MathRoom.Backend.Data;
 using MathRoom.Backend.Data.Entities;
+using MathRoom.Backend.Extensions;
 using MathRoom.Backend.Models.Identity;
 using MathRoom.Backend.Services.Identity;
 using Microsoft.AspNetCore.Authorization;
@@ -17,14 +17,12 @@ public class AccountsController : ControllerBase
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly DataContext _context;
     private readonly ITokenService _tokenService;
-    private readonly IConfiguration _configuration;
 
-    public AccountsController(ITokenService tokenService, DataContext context, UserManager<ApplicationUser> userManager, IConfiguration configuration)
+    public AccountsController(ITokenService tokenService, DataContext context, UserManager<ApplicationUser> userManager)
     {
         _tokenService = tokenService;
         _context = context;
         _userManager = userManager;
-        _configuration = configuration;
     }
 
     [HttpPost("/login")]
@@ -65,6 +63,7 @@ public class AccountsController : ControllerBase
         
         return Ok(new AuthResponse
         {
+            Roles = AccountExtensions.GetUserRoles(_context, user.Email!),
             Username = user.UserName!,
             Email = user.Email!,
             Token = accessToken
@@ -116,6 +115,8 @@ public class AccountsController : ControllerBase
             default:
                 return BadRequest(request);
         }
+        
+        await _context.SaveChangesAsync();
             
         return await Authenticate(new AuthRequest
         {
@@ -124,38 +125,5 @@ public class AccountsController : ControllerBase
         });
     }
     
-    [Authorize(Roles = RoleConsts.Student)]
-    [HttpPost]
-    public async Task<IActionResult> RefreshListOfSolvedProblems([FromBody] ProblemRefreshRequest request)
-    {
-        var managedUser = await _userManager.FindByEmailAsync(request.Email);
-        if (managedUser == null)
-        {
-            return BadRequest("Bad credentials");
-        }
-
-        var solvedProblems = new List<Problem>();
-        
-        foreach (var keypair in request.TriedProblems)
-        {
-            
-            if (keypair.Value == true)
-            {
-                var problem = await _context.Problems.FirstOrDefaultAsync(p => p.Id == keypair.Key);
-                if (problem == null)
-                {
-                    return BadRequest("No such problem exists");
-                }
-                managedUser.SolvedProblems.Add(problem);
-            }
-            else
-            {
-                managedUser.HowManyProblemsWasTried += 1;
-            }
-        }
-        
-        await _context.SaveChangesAsync();
-        return Ok();
-    }
 
 }

@@ -14,5 +14,5 @@ public class ApplicationUser : IdentityUser<long>
     public string? MiddleName { get; set; }
     public List<Group> Groups { get; set; } = new List<Group>();
     public List<Problem> SolvedProblems { get; set; } = new List<Problem>();
-    public int HowManyProblemsWasTried { get; set; }
+    public List<Problem> UnSolvedProblems { get; set; } = new List<Problem>();
 }
