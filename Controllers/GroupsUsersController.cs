@@ -39,12 +39,18 @@ public class GroupsUsersController : ControllerBase
             return BadRequest("Student with such Id does not exist");
         }
         
-        var tags = _context.Groups.Where(g => g.Id == groupId).Select(g => g.Tags).Single();
-       
-        var problems = await _context.Problems.Where(
-            p => tags.Contains(p.Tag) && !student.ProblemsProgress.Any(pp => pp.ProblemId == p.Id &&
-                                                                                pp.IsSolved)).Take(10).ToListAsync();
-        return Ok(problems);
+        var groupTags = group.Tags;
+        
+        //select all problems with tags from groupTags
+        var problems = await _context.Problems.Where(p => groupTags.Contains(p.Tag)).ToListAsync();
+        
+        //select all problems that student has already solved
+        var solvedProblems = student.ProblemsProgress.Where(pp => pp.IsSolved).Select(pp => pp.ProblemId).ToList();
+        
+        //remove all solved problems from the list of problems
+        problems.RemoveAll(p => solvedProblems.Contains(p.Id));
+        
+        return Ok(problems.Take(10));
     }
     
     [HttpPost("student/", Name = "Refresh List Of Solved Problems")]
@@ -55,7 +61,16 @@ public class GroupsUsersController : ControllerBase
         {
             return BadRequest("Bad credentials");
         }
-        
+        //find list af all tags in this group
+        var tags = _context.Groups.Where(g => g.Id == groupId).Select(g => g.Tags).Single();
+        //find all tags of problems with this id's
+        var problemTags = await _context.Problems.Where(p => request.Keys.Contains(p.Id)).Select(p => p.Tag).ToListAsync();
+        //check, if all problemTags exists in tags
+        if (!problemTags.All(tags.Contains))
+        {
+            return BadRequest("Bad credentials");
+        }
+
         foreach (var keypair in request)
         {
             
@@ -201,10 +216,10 @@ public class GroupsUsersController : ControllerBase
         return Ok();
     }
     
-    [HttpGet("teacher/", Name = "Get Student Statistics")]
+    [HttpGet("statistics/", Name = "Get Student Statistics")]
     public async Task<IActionResult> GetStudentStatistics(int groupId, int userId)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+        var user = await _context.Users.Include(u => u.ProblemsProgress).FirstOrDefaultAsync(u => u.Id == userId);
         
         if (user is null)
             return BadRequest();

@@ -14,7 +14,7 @@ public class ApplicationUser : IdentityUser<long>
     [Required]
     public string? MiddleName { get; set; }
     public List<Group> Groups { get; set; } = new List<Group>();
-    public List<IsProblemSolved> ProblemsProgress { get; set; } = null!;
+    public List<IsProblemSolved> ProblemsProgress { get; set; } = new List<IsProblemSolved>();
 }
 
 public record IsProblemSolved
