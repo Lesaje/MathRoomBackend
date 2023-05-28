@@ -16,24 +16,17 @@ public class Group
         public int OverallTriedProblems { get; set; }
     }
     
-    public async Task<Statistics> GetStatistics(DataContext _context, ApplicationUser user)
+    public Statistics GetStatistics(ApplicationUser user)
     {
-        //select solved problems which Tag is in Tags
-        var tags = Tags;
-        var solvedProblems = await _context.Problems.Where(
-            p => tags.Contains(p.Tag) && user.SolvedProblems.Contains(p))
-            .ToListAsync();
         
-        //select tried problems which Tag is in Tags
-        var unsolvedProblems = await _context.Problems.Where(
-            p => tags.Contains(p.Tag) && user.UnSolvedProblems.Contains(p))
-            .ToListAsync();
+        var solvedProblems = user.ProblemsProgress.Count(p => p.IsSolved);
+        var overallProblems = user.ProblemsProgress.Count;
         
         return new Statistics
         {
-            AverageScore = solvedProblems.Count / double.Parse((unsolvedProblems.Count + solvedProblems.Count).ToString()),
-            OverallSolvedProblems = solvedProblems.Count,
-            OverallTriedProblems = unsolvedProblems.Count + solvedProblems.Count
+            AverageScore = solvedProblems / double.Parse(overallProblems.ToString()),
+            OverallSolvedProblems = solvedProblems,
+            OverallTriedProblems = overallProblems
         };
     }
 }

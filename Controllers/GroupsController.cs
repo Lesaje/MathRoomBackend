@@ -46,25 +46,31 @@ public class GroupsController : ControllerBase
             return BadRequest();
         
         var groups = await _context.Groups.Where(g => g.ApplicationUsers.Contains(user)).ToListAsync();
+        var users = await _context.Groups.Where(g => g.ApplicationUsers.Contains(user)).Select(g => g.ApplicationUsers).ToListAsync();
+
+        
+        
         var response = new List<GroupResponse>();
 
-        foreach (var group in groups)
+        //write a for loop with i index instead of foreach
+        for (int i = 0; i < groups.Count; i++)
         {
-            var responses = new List<BaseAccountResponse>();
-
-            responses.Add(new BaseAccountResponse {
-                Roles = AccountExtensions.GetUserRoles(_context, user.Email!),
-                Username = user.UserName,
-                Email = user.Email
-            });
-            
             response.Add(new GroupResponse
             {
-                Id = group.Id,
-                Name = group.Name,
-                Tags = group.Tags,
-                GroupUsers = responses
+                Id = groups[i].Id,
+                Name = groups[i].Name,
+                Tags = groups[i].Tags,
+                GroupUsers = new List<BaseAccountResponse>()
             });
+            
+            foreach (var user1 in users[i])
+            {
+                response[i].GroupUsers.Add(new BaseAccountResponse {
+                    Roles = AccountExtensions.GetUserRoles(_context, user1.Email!),
+                    Username = user1.UserName,
+                    Email = user1.Email
+                });
+            }
         }
 
         return Ok(response);

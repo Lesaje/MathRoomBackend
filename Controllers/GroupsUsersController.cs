@@ -40,11 +40,10 @@ public class GroupsUsersController : ControllerBase
         }
         
         var tags = _context.Groups.Where(g => g.Id == groupId).Select(g => g.Tags).Single();
-        
+       
         var problems = await _context.Problems.Where(
-            p => tags.Contains(p.Tag) && !student.SolvedProblems.Contains(p))
-            .Take(10).ToListAsync();
-        
+            p => tags.Contains(p.Tag) && !student.ProblemsProgress.Any(pp => pp.ProblemId == p.Id &&
+                                                                                pp.IsSolved)).Take(10).ToListAsync();
         return Ok(problems);
     }
     
@@ -67,7 +66,10 @@ public class GroupsUsersController : ControllerBase
                 {
                     return BadRequest("No such problem exists");
                 }
-                student.SolvedProblems.Add(problem);
+                student.ProblemsProgress.Add(new IsProblemSolved {
+                    ProblemId = problem.Id, 
+                    IsSolved = true
+                });
             }
             else
             {
@@ -76,7 +78,10 @@ public class GroupsUsersController : ControllerBase
                 {
                     return BadRequest("No such problem exists");
                 }
-                student.UnSolvedProblems.Add(problem);
+                student.ProblemsProgress.Add(new IsProblemSolved {
+                    ProblemId = problem.Id, 
+                    IsSolved = false
+                });
             }
         }
         
@@ -108,19 +113,25 @@ public class GroupsUsersController : ControllerBase
     [HttpPatch("leave", Name = "Leave Group")]
     public async Task<IActionResult> LeaveGroup(int groupId, int userId)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+        var user = await _context.Users.Include(u => u.Groups).
+            FirstOrDefaultAsync(u => u.Id == userId);
 
         if (user is null)
             return NotFound();
 
-        var group = await _context.Groups.FirstOrDefaultAsync(g => g.Id == groupId);
+        var group = await _context.Groups.Include(g => g.ApplicationUsers).
+            FirstOrDefaultAsync(g => g.Id == groupId);
 
         if (group is null)
             return NotFound();
+        
+        //check if this user are the member of this group using _context.
+        if (!await _context.Groups.AnyAsync(g => g.Id == groupId && g.ApplicationUsers.Any(u => u.Id == userId)))
+            return BadRequest();
 
         group.ApplicationUsers.Remove(user);
         user.Groups.Remove(group);
-
+        
         await _context.SaveChangesAsync();
 
         return Ok();
@@ -172,11 +183,13 @@ public class GroupsUsersController : ControllerBase
         if (teacher is null)
             return BadRequest();
         
-        var group = await _context.Groups.FirstOrDefaultAsync(g => g.Id == groupId);
+        var group = await _context.Groups.Include(g => g.ApplicationUsers).
+            FirstOrDefaultAsync(g => g.Id == groupId);
         if (group is null)
             return BadRequest();
         
-        var student = await _context.Users.FirstOrDefaultAsync(u => u.Id == studentId);
+        var student = await _context.Users.Include(u => u.Groups).
+            FirstOrDefaultAsync(u => u.Id == studentId);
         if (student is null)
             return BadRequest();
         
@@ -202,7 +215,7 @@ public class GroupsUsersController : ControllerBase
             return BadRequest();
         
         
-        return Ok(group.GetStatistics(_context, user));
+        return Ok(group.GetStatistics(user));
     }
     
 }
